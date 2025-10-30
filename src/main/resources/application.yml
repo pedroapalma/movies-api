@@ -12,6 +12,10 @@ cache:
   max-size: 1000
   key-prefix: "movies:page:"
 
+rate-limit:
+  capacity: 10
+  duration-minutes: 1
+
 spring:
   application:
     name: movies

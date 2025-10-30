@@ -12,6 +12,7 @@ REST API to retrieve directors with movie count above a given threshold. This AP
 - [API Documentation](#api-documentation)
 - [Performance Optimizations](#performance-optimizations)
 - [Caching Strategy](#-caching-strategy)
+- [Rate Limiting](#-rate-limiting)
 - [Code Quality](#code-quality)
 - [Configuration](#configuration)
 - [Docker Setup](#-docker-setup)
@@ -28,6 +29,7 @@ This application consumes an external Movies API and provides an endpoint to ret
 - ✅ Hexagonal Architecture (Ports & Adapters)
 - ✅ Parallel HTTP requests for improved performance (80%+ faster)
 - ✅ Multi-profile caching with configurable TTL (Caffeine for local, Redis for production)
+- ✅ Rate limiting with Bucket4j (configurable requests per minute)
 - ✅ Docker Compose setup for Redis with management UI
 - ✅ Detailed performance logging and cache monitoring
 - ✅ OpenAPI/Swagger documentation
@@ -95,6 +97,9 @@ This project follows **Hexagonal Architecture** (Ports and Adapters pattern):
 - **MapStruct 1.5.5** - DTO mapping
 - **Lombok** - Boilerplate reduction
 - **SpringDoc OpenAPI 2.8.4** - API documentation
+- **Bucket4j 8.10.1** - Rate limiting with token bucket algorithm
+- **Caffeine** - In-memory cache (local profile)
+- **Redis** - Distributed cache (production profile)
 - **Maven** - Build tool
 
 **Code Quality Tools:**
@@ -147,10 +152,13 @@ src/main/java/com/challenge/movies/
     │   │   └── DirectorMapper.java
     │   └── exception/
     │       └── GlobalExceptionHandler.java
+    ├── interceptor/
+    │   └── RateLimitInterceptor.java
     └── config/
         ├── AsyncConfig.java
         ├── OpenApiConfig.java
-        └── RedisConfig.java (@Profile("!local"))
+        ├── RedisConfig.java (@Profile("!local"))
+        └── WebConfig.java
 
 src/main/resources/
 ├── application.yml (Production - Redis)
@@ -472,6 +480,93 @@ DEBUG RedisCacheAdapter : Cached value in Redis for key: movies:page:2 with TTL:
 
 ---
 
+## 🚦 Rate Limiting
+
+The API implements **global rate limiting** using Bucket4j to protect against abuse and ensure fair usage.
+
+### Configuration
+
+**Default limits:**
+```yaml
+rate-limit:
+  capacity: 10           # Maximum 10 requests
+  duration-minutes: 1    # Per 1 minute
+```
+
+**How it works:**
+- Uses **token bucket algorithm** for smooth rate limiting
+- All requests to `/api/**` endpoints are rate-limited
+- Tokens refill automatically after the time window expires
+- Returns HTTP 429 when limit is exceeded
+
+### Response Behavior
+
+**When limit is NOT exceeded:**
+```
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+  "directors": ["Martin Scorsese", "Woody Allen"]
+}
+```
+
+**When limit IS exceeded:**
+```
+HTTP/1.1 429 Too Many Requests
+Content-Type: application/json
+
+{
+  "status": 429,
+  "error": "Too Many Requests",
+  "message": "Rate limit exceeded. Please try again later."
+}
+```
+
+### Testing Rate Limiting
+
+**Test with multiple requests:**
+```bash
+# Send 15 requests rapidly (exceeds limit of 10)
+for i in {1..15}; do
+  echo "Request $i:"
+  curl -w "\nHTTP Status: %{http_code}\n\n" http://localhost:8080/api/directors?threshold=4
+done
+```
+
+**Expected result:**
+- First 10 requests: HTTP 200 OK
+- Requests 11-15: HTTP 429 Too Many Requests
+- After 1 minute: Tokens refill, requests work again
+
+### Customization
+
+**Increase rate limit for production:**
+```yaml
+rate-limit:
+  capacity: 100          # 100 requests
+  duration-minutes: 1    # per minute
+```
+
+**Hourly rate limit:**
+```yaml
+rate-limit:
+  capacity: 1000         # 1000 requests
+  duration-minutes: 60   # per hour
+```
+
+### Implementation Details
+
+**Location:** `src/main/java/com/challenge/movies/infrastructure/interceptor/RateLimitInterceptor.java`
+
+**Technology:** Bucket4j 8.10.1 with token bucket algorithm
+
+**Scope:** Global (shared across all users)
+
+**Note:** For production environments with multiple instances, consider implementing distributed rate limiting using Redis.
+
+---
+
 ## 🔍 Code Quality
 
 ### Running Quality Checks
@@ -524,6 +619,10 @@ cache:
   ttl-minutes: 1              # Cache TTL (1 minute for demo)
   max-size: 1000              # Max cache entries (Caffeine only)
   key-prefix: "movies:page:"  # Configurable cache key prefix
+
+rate-limit:
+  capacity: 10                # Max requests allowed
+  duration-minutes: 1         # Time window in minutes
 
 spring:
   application:
