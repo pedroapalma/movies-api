@@ -1,0 +1,5 @@
+# Quality Configuration Directory
+# This directory contains configuration files for code quality tools
+# All files in this directory should be committed to version control
+
+# No files to ignore - keep all configuration files

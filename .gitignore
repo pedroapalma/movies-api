@@ -1,8 +1,8 @@
-HELP.md
 target/
 .mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
+CHALLENGE.md
 
 ### STS ###
 .apt_generated

@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FindBugsFilter>
+
+  <!-- Ignore redundant nullcheck in Lombok generated code -->
+  <Match>
+    <Bug pattern="RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE" />
+  </Match>
+  
+  <!-- Ignore CRLF injection warnings for internal application logs -->
+  <Match>
+    <Bug pattern="CRLF_INJECTION_LOGS" />
+  </Match>
+  
+  <!-- Ignore Spring endpoint security warnings for internal controllers -->
+  <Match>
+    <Class name="~.*\.controller\..*" />
+    <Bug pattern="SPRING_ENDPOINT" />
+  </Match>
+
+  <!-- Ignore SPRING_ENDPOINT for Feign clients -->
+  <Match>
+    <Class name="~.*\.infrastructure\.client\..*Client" />
+    <Bug pattern="SPRING_ENDPOINT" />
+  </Match>
+
+  <!-- Ignore EI_EXPOSE_REP for records with collections (DTOs and domain models) -->
+  <Match>
+    <Or>
+      <Class name="~.*\.dto\..*" />
+      <Class name="~.*\.domain\.model\..*" />
+    </Or>
+    <Bug pattern="EI_EXPOSE_REP" />
+  </Match>
+
+  <!-- Ignore EI_EXPOSE_REP2 for records with collections (DTOs and domain models) -->
+  <Match>
+    <Or>
+      <Class name="~.*\.dto\..*" />
+      <Class name="~.*\.domain\.model\..*" />
+    </Or>
+    <Bug pattern="EI_EXPOSE_REP2" />
+  </Match>
+</FindBugsFilter>

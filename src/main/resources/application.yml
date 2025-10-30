@@ -1,0 +1,24 @@
+movies:
+  api:
+    url: https://wiremock.dev.eroninternational.com
+  async:
+    core-pool-size: 5
+    max-pool-size: 10
+    queue-capacity: 50
+    thread-name-prefix: MoviesAsync-
+
+spring:
+  application:
+    name: movies
+  cloud:
+    compatibility-verifier:
+      enabled: false
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+    tags-sorter: alpha
+    operations-sorter: alpha

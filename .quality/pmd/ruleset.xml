@@ -1,0 +1,67 @@
+<?xml version="1.0"?>
+<ruleset name="Spring Boot PMD Rules"
+         xmlns="http://pmd.sourceforge.net/ruleset/2.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://pmd.sourceforge.net/ruleset/2.0.0 https://pmd.sourceforge.io/ruleset_2_0_0.xsd">
+
+    <description>PMD rules for Spring Boot applications - Balanced for productivity</description>
+
+    <!-- Best Practices - essential only -->
+    <rule ref="category/java/bestpractices.xml">
+        <!-- Exclude JUnit rules that are too strict -->
+        <exclude name="JUnitTestsShouldIncludeAssert"/>
+        <exclude name="JUnitAssertionsShouldIncludeMessage"/>
+        <exclude name="AccessorClassGeneration"/>
+        <exclude name="GuardLogStatement"/>
+    </rule>
+
+    <!-- Code Style - minimal set for readability -->
+    <rule ref="category/java/codestyle.xml">
+        <!-- Exclude overly pedantic final requirements -->
+        <exclude name="MethodArgumentCouldBeFinal"/>
+        <exclude name="LocalVariableCouldBeFinal"/>
+        <exclude name="OnlyOneReturn"/>
+        <exclude name="AtLeastOneConstructor"/>
+        <exclude name="CallSuperInConstructor"/>
+        <exclude name="CommentDefaultAccessModifier"/>
+        <!-- Exclude variable naming strictness -->
+        <exclude name="LongVariable"/>
+        <exclude name="ShortVariable"/>
+        <exclude name="TooManyStaticImports"/>
+    </rule>
+
+    <!-- Design - focus on complexity and maintainability -->
+    <rule ref="category/java/design.xml">
+        <!-- Exclude rules that generate noise in Spring projects -->
+        <exclude name="LawOfDemeter"/>
+        <exclude name="LoosePackageCoupling"/>
+        <exclude name="UseObjectForClearerAPI"/>
+    </rule>
+
+    <!-- Error Prone - keep all critical bug detection -->
+    <rule ref="category/java/errorprone.xml"/>
+
+    <!-- Performance - focus on real performance issues -->
+    <rule ref="category/java/performance.xml">
+        <!-- Exclude micro-optimizations -->
+        <exclude name="AvoidInstantiatingObjectsInLoops"/>
+    </rule>
+
+    <!-- Security - keep all security rules (critical) -->
+    <rule ref="category/java/security.xml"/>
+
+    <!-- Custom thresholds for complexity metrics -->
+    <rule ref="category/java/design.xml/CyclomaticComplexity">
+        <properties>
+            <property name="classReportLevel" value="80"/>
+            <property name="methodReportLevel" value="15"/>
+        </properties>
+    </rule>
+
+    <rule ref="category/java/design.xml/TooManyMethods">
+        <properties>
+            <property name="maxmethods" value="25"/>
+        </properties>
+    </rule>
+
+</ruleset>
