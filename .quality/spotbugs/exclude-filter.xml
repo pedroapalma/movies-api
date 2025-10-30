@@ -40,4 +40,13 @@
     </Or>
     <Bug pattern="EI_EXPOSE_REP2" />
   </Match>
+
+  <!-- Ignore EI_EXPOSE_REP2 for Spring beans injected via constructor (Lombok @RequiredArgsConstructor) -->
+  <Match>
+    <Or>
+      <Class name="~.*\.application\.service\..*" />
+      <Class name="~.*\.infrastructure\.adapter\..*" />
+    </Or>
+    <Bug pattern="EI_EXPOSE_REP2" />
+  </Match>
 </FindBugsFilter>

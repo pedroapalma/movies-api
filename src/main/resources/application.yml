@@ -7,12 +7,27 @@ movies:
     queue-capacity: 50
     thread-name-prefix: MoviesAsync-
 
+cache:
+  ttl-minutes: 1
+  max-size: 1000
+  key-prefix: "movies:page:"
+
 spring:
   application:
     name: movies
   cloud:
     compatibility-verifier:
       enabled: false
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
 
 springdoc:
   api-docs:
@@ -22,3 +37,7 @@ springdoc:
     enabled: true
     tags-sorter: alpha
     operations-sorter: alpha
+
+logging:
+  level:
+    com.challenge.movies: INFO

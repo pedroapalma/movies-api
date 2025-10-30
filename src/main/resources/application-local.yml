@@ -1,0 +1,13 @@
+cache:
+  ttl-minutes: 1
+  max-size: 1000
+  key-prefix: "movies:page:"
+
+spring:
+  data:
+    redis:
+      enabled: false
+
+logging:
+  level:
+    com.challenge.movies: DEBUG
