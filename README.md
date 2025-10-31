@@ -118,7 +118,7 @@ Run with **local profile** for quick development (no Docker needed):
 
 ```bash
 # Clone and navigate
-git clone <repository-url>
+git clone https://github.com/pedroapalma/movies-api.git
 cd movies-api
 
 # Run with local profile (Caffeine cache, no OAuth2)
