@@ -6,32 +6,11 @@ REST API to retrieve directors with movie count above a given threshold. This AP
 
 | Resource | Link | Description |
 |----------|------|-------------|
+| 🐳 **Docker Setup** | [`docker-compose.yml`](src/main/resources/docker/docker-compose.yml) | Redis + Keycloak auto-import |
 | 📮 **Postman Collection** | [`Download`](postman/Movies%20API.postman_collection.json) | Pre-configured OAuth2 authentication (zero setup!) |
 | 📖 **API Documentation** | http://localhost:8080/swagger-ui.html | Interactive Swagger UI |
-| 🏥 **Health Check** | http://localhost:8080/actuator/health | API health status |
-| 🐳 **Docker Setup** | `src/main/resources/docker/` | Redis + Keycloak auto-import |
+| 🗄️ **Redis Commander** | http://localhost:8081 | Redis cache management UI |
 | 🔑 **Keycloak Admin** | http://localhost:8180 | admin / admin |
-
-## 📋 Table of Contents
-
-- [Overview](#overview)
-- [Architecture](#architecture)
-- [Technologies](#technologies)
-- [Project Structure](#project-structure)
-- [Getting Started](#getting-started)
-- [API Documentation](#api-documentation)
-- [Performance Optimizations](#performance-optimizations)
-- [Caching Strategy](#-caching-strategy)
-- [Rate Limiting](#-rate-limiting)
-- [Authentication (OAuth2)](#-authentication-oauth2)
-- [Postman Collection](#-postman-collection)
-- [Code Quality](#-code-quality)
-- [Configuration](#configuration)
-- [Docker Setup](#-docker-setup)
-- [Testing](#testing)
-- [Build & Deploy](#build--deploy)
-
----
 
 ## 🎯 Overview
 
@@ -43,12 +22,11 @@ This application consumes an external Movies API and provides an endpoint to ret
 - ✅ Multi-profile caching with configurable TTL (Caffeine for local, Redis for production)
 - ✅ Rate limiting with Bucket4j (configurable requests per minute)
 - ✅ OAuth2 Client Credentials authentication (disabled in local, enabled in prod)
-- ✅ **Ready-to-use Postman Collection** with pre-configured OAuth2 ([see below](#-postman-collection))
+- ✅ **Ready-to-use Postman Collection** with pre-configured OAuth2
 - ✅ Docker Compose setup for Redis, Keycloak with auto-import realm
 - ✅ Detailed performance logging and cache monitoring
 - ✅ OpenAPI/Swagger documentation
-- ✅ Global exception handling with custom domain exceptions
-- ✅ Code quality tools (Spotless, PMD, SpotBugs, Checkstyle)
+- ✅ Code quality tools (Spotless, PMD, SpotBugs, Checkstyle, JaCoCo)
 - ✅ MapStruct for DTO mapping
 - ✅ Spring Cloud OpenFeign for HTTP client
 - ✅ Spring Boot Actuator for health checks
@@ -93,12 +71,11 @@ This project follows **Hexagonal Architecture** (Ports and Adapters pattern):
 
 **Key Design Decisions:**
 
-1. **CachePort Interface** - Instead of `@Cacheable`, we use a port to maintain framework independence and hexagonal architecture purity
+1. **OAuth2 Authentication** - Profile-based security (disabled in local, enabled in production) with JWT validation
 2. **Profile-Based Cache** - Caffeine for local development (fast, no infrastructure), Redis for production (distributed, scalable)
-3. **Configurable via Properties** - Cache TTL, key prefixes, and pool sizes are externalized to `application.yml`
-4. **Custom Exceptions** - Domain exceptions (`InvalidParameterException`, `MoviesFetchException`) for better error handling
-5. **Async with Thread Pool** - Configurable thread pool for parallel API calls with proper resource management
-6. **Detailed Logging** - INFO-level logs for cache performance tracking without debug overhead
+3. **Async with Thread Pool** - Configurable thread pool for parallel API calls with proper resource management
+4. **Rate Limiting** - Global request limiting with Bucket4j to protect against abuse
+5. **Configurable via Properties** - All configurations externalized to `application.yml`
 
 ---
 
@@ -106,7 +83,6 @@ This project follows **Hexagonal Architecture** (Ports and Adapters pattern):
 
 - **Java 21**
 - **Spring Boot 3.5.7**
-- **Spring Cloud 2025.0.0** (Northfields)
 - **Spring Cloud OpenFeign** - HTTP client
 - **Spring Security OAuth2 Resource Server** - JWT authentication
 - **MapStruct 1.5.5** - DTO mapping
@@ -124,70 +100,7 @@ This project follows **Hexagonal Architecture** (Ports and Adapters pattern):
 - PMD (Static analysis)
 - SpotBugs (Bug detection)
 - Checkstyle (Code style)
-
----
-
-## 📁 Project Structure
-
-```
-src/main/java/com/challenge/movies/
-├── domain/
-│   ├── model/
-│   │   ├── Movie.java
-│   │   └── MoviesResponse.java
-│   ├── port/
-│   │   ├── MoviesPort.java
-│   │   ├── CachePort.java
-│   │   └── SecurityPort.java
-│   └── exception/
-│       ├── InvalidParameterException.java
-│       └── MoviesFetchException.java
-│
-├── application/
-│   └── service/
-│       ├── DirectorService.java
-│       └── AsyncMoviesService.java
-│
-└── infrastructure/
-    ├── adapter/
-    │   ├── MoviesAdapter.java
-    │   ├── cache/
-    │   │   ├── CaffeineCacheAdapter.java (@Profile("local"))
-    │   │   └── RedisCacheAdapter.java (@Profile("!local"))
-    │   └── security/
-    │       └── SecurityContextAdapter.java
-    ├── client/
-    │   ├── MoviesClient.java
-    │   ├── dto/
-    │   │   ├── MovieDto.java
-    │   │   └── MoviesResponseDto.java
-    │   └── mapper/
-    │       └── MoviesMapper.java
-    ├── controller/
-    │   ├── DirectorController.java
-    │   ├── dto/
-    │   │   ├── DirectorsResponseDto.java
-    │   │   └── ErrorResponseDto.java
-    │   ├── mapper/
-    │   │   └── DirectorMapper.java
-    │   └── exception/
-    │       └── GlobalExceptionHandler.java
-    ├── interceptor/
-    │   └── RateLimitInterceptor.java
-    └── config/
-        ├── AsyncConfig.java
-        ├── OpenApiConfig.java
-        ├── RedisConfig.java (@Profile("!local"))
-        ├── SecurityConfig.java (@Profile-based)
-        └── WebConfig.java
-
-src/main/resources/
-├── application.yml (Production - Redis + OAuth2)
-├── application-local.yml (Development - Caffeine + No Auth)
-└── docker/
-    ├── docker-compose.yml (Redis + Keycloak + Management UIs)
-    └── README.md (Docker setup instructions)
-```
+- JaCoCo (Code coverage)
 
 ---
 
@@ -197,34 +110,63 @@ src/main/resources/
 
 - Java 21
 - Maven 3.8+
+- Docker (optional, for Redis and Keycloak)
 
-### Installation
+### Local Development (Recommended)
 
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd movies-api
-   ```
+Run with **local profile** for quick development (no Docker needed):
 
-2. **Build the project**
-   ```bash
-   mvn clean install
-   ```
+```bash
+# Clone and navigate
+git clone <repository-url>
+cd movies-api
 
-3. **Run the application**
-   ```bash
-   mvn spring-boot:run
-   ```
+# Run with local profile (Caffeine cache, no OAuth2)
+mvn spring-boot:run -Dspring-boot.run.profiles=local
+```
 
-   Or run the JAR:
-   ```bash
-   java -jar target/movies-0.0.1-SNAPSHOT.jar
-   ```
+**Access:**
+- API: http://localhost:8080/api/directors?threshold=4
+- Swagger UI: http://localhost:8080/swagger-ui.html
 
-4. **Access the application**
-   - API: http://localhost:8080
-   - Swagger UI: http://localhost:8080/swagger-ui.html
-   - OpenAPI Spec: http://localhost:8080/api-docs
+### Production Mode
+
+Run with **production profile** (Redis cache + OAuth2):
+
+```bash
+# 1. Start infrastructure (Redis + Keycloak)
+cd src/main/resources/docker
+docker-compose up -d
+
+# 2. Run application (in project root)
+mvn spring-boot:run
+```
+
+**Access with authentication:**
+- Use [Postman Collection](postman/Movies%20API.postman_collection.json) for OAuth2 flow
+- Or get token manually from Keycloak at http://localhost:8180
+
+### Build Options
+
+**Build JAR:**
+```bash
+mvn clean package
+```
+
+**Build without tests (faster):**
+```bash
+mvn clean package -DskipTests
+```
+
+**Run JAR:**
+```bash
+java -jar target/movies-0.0.1-SNAPSHOT.jar
+```
+
+**Run with specific profile:**
+```bash
+java -jar target/movies-0.0.1-SNAPSHOT.jar --spring.profiles.active=local
+```
 
 ---
 
@@ -243,37 +185,12 @@ Retrieves a list of director names who have directed more than the specified thr
 
 **Responses:**
 
-**200 OK**
-```json
-{
-  "directors": [
-    "Martin Scorsese",
-    "Woody Allen"
-  ]
-}
-```
-
-**400 Bad Request**
-```json
-{
-  "status": 400,
-  "error": "Bad Request",
-  "message": "Threshold must be a non-negative integer",
-  "path": "/api/directors",
-  "timestamp": "2025-10-30T12:34:56"
-}
-```
-
-**500 Internal Server Error**
-```json
-{
-  "status": 500,
-  "error": "Internal Server Error",
-  "message": "An unexpected error occurred. Please try again later.",
-  "path": "/api/directors",
-  "timestamp": "2025-10-30T12:34:56"
-}
-```
+| Status | Description |
+|--------|-------------|
+| **200 OK** | Successfully retrieved directors list |
+| **400 Bad Request** | Invalid threshold parameter (negative, missing, or non-numeric) |
+| **429 Too Many Requests** | Rate limit exceeded |
+| **500 Internal Server Error** | Unexpected error occurred |
 
 ### Examples
 
@@ -342,13 +259,6 @@ CaffeineCacheAdapter | RedisCacheAdapter
    (@Profile("local"))   (@Profile("!local"))
 ```
 
-**Why not @Cacheable?**
-Instead of using Spring's `@Cacheable` annotation, we implement caching through the `CachePort` interface to maintain **hexagonal architecture principles**:
-- ✅ **Framework independence** - Domain layer doesn't depend on Spring
-- ✅ **Better testability** - Easy to mock and test cache behavior
-- ✅ **Architecture purity** - Cache is treated as an infrastructure concern
-- ✅ **Flexibility** - Easy to swap implementations or add custom logic
-
 ### Cache Implementations
 
 **Local Profile (Development)**
@@ -409,7 +319,6 @@ mvn spring-boot:run
 
 **View Redis cache (optional):**
 - Redis Commander UI: http://localhost:8081
-- See `src/main/resources/docker/README.md` for detailed Docker setup
 
 ### Performance Impact
 
@@ -683,141 +592,6 @@ These endpoints are always accessible without authentication:
 - `/swagger-ui/**` - API documentation
 - `/v3/api-docs/**` - OpenAPI specification
 
-### Security Adapter (Domain Access)
-
-If your domain needs authentication context, use the `SecurityPort`:
-
-```java
-@Service
-@RequiredArgsConstructor
-public class SomeService {
-
-  private final SecurityPort securityPort;
-
-  public void doSomething() {
-    if (securityPort.isAuthenticated()) {
-      String clientId = securityPort.getCurrentClientId().orElse("anonymous");
-      List<String> scopes = securityPort.getCurrentScopes();
-      // Use authentication info...
-    }
-  }
-}
-```
-
-**Implementation:**
-- Port: `src/main/java/com/challenge/movies/domain/port/SecurityPort.java`
-- Adapter: `src/main/java/com/challenge/movies/infrastructure/adapter/security/SecurityContextAdapter.java`
-
----
-
-## 📮 Postman Collection
-
-Ready-to-use Postman collection with **zero manual configuration needed** for local testing!
-
-### 📥 Import Collection
-
-**File:** [`postman/Movies API.postman_collection.json`](postman/Movies%20API.postman_collection.json)
-
-**Import steps:**
-1. Open Postman
-2. Click **Import** button
-3. Drag and drop `Movies API.postman_collection.json` or select it
-4. Collection imports with all pre-configured settings ✅
-
-### 📂 Collection Structure
-
-The collection is organized into **two folders** for different environments:
-
-#### 📁 Local Profile (No Auth)
-For development with authentication disabled.
-
-**Included requests:**
-- Get Directors (Threshold 4)
-- Get Directors (Threshold 0)
-- Health Check
-- Swagger UI
-
-**Usage:**
-```bash
-mvn spring-boot:run -Dspring-boot.run.profiles=local
-```
-Then use any request - **no token needed!**
-
-#### 📁 Production Profile (OAuth2)
-For testing with OAuth2 authentication enabled.
-
-**Included requests:**
-1. **Get Access Token** ← Run this first!
-2. **Get Directors (Threshold 4)** - Authenticated
-3. **Get Directors (Threshold 0)** - Authenticated
-4. **Test Without Token** - Should fail with 401
-5. **Health Check (Public)** - Always accessible
-
-### 🚀 Quick Start Guide
-
-#### Option 1: Local Profile (No Authentication)
-
-```bash
-# 1. Start API
-mvn spring-boot:run -Dspring-boot.run.profiles=local
-
-# 2. In Postman: Use any request from "Local Profile" folder
-```
-
-No token, no OAuth2, no Keycloak needed! Perfect for quick testing.
-
-#### Option 2: Production Profile (OAuth2)
-
-```bash
-# 1. Start Keycloak (auto-imports realm with client_secret)
-cd src/main/resources/docker
-docker-compose up keycloak
-
-# 2. Start API in production mode (new terminal)
-mvn spring-boot:run
-
-# 3. In Postman: Execute "Production Profile > 1. Get Access Token"
-#    ✅ Token is automatically saved to {{access_token}} variable
-
-# 4. Use any other request in the folder
-#    Token is automatically included in requests!
-```
-
-### 🔑 Pre-configured OAuth2 Client
-
-The Postman collection already includes the OAuth2 credentials:
-
-| Variable | Value | Description |
-|----------|-------|-------------|
-| `client_id` | `movies-client` | OAuth2 client identifier |
-| `client_secret` | `movies-secret-2024` | Pre-configured secret (dev only!) |
-| `access_token` | (auto-saved) | Token saved after "Get Access Token" |
-
-**No manual configuration needed!** The Keycloak realm is auto-imported with these credentials.
-
-### ✨ Smart Features
-
-**Auto-save Token:**
-When you execute "1. Get Access Token", a script automatically:
-- ✅ Extracts `access_token` from response
-- ✅ Saves it to collection variable `{{access_token}}`
-- ✅ Makes it available for all subsequent requests
-- ✅ Logs confirmation in Postman Console
-
-**Pre-configured URLs:**
-- API: `http://localhost:8080`
-- Keycloak: `http://localhost:8180`
-- Realm: `movies-api`
-
-### 🔧 Customization
-
-To use different OAuth2 credentials:
-
-1. Right-click on the collection → **Edit**
-2. Go to **Variables** tab
-3. Update `client_secret` value
-4. Save changes
-
 ---
 
 ## 🔍 Code Quality
@@ -852,11 +626,16 @@ mvn verify
 **Checkstyle** - Code style
 - Google Java Style Guide
 
+**JaCoCo** - Code coverage
+- 80% line coverage threshold
+- 75% branch coverage threshold
+- Report: `target/site/jacoco/index.html`
+
 ---
 
 ## ⚙️ Configuration
 
-### application.yml (Production - Redis)
+### application.yml (Production - Redis + OAuth2)
 
 ```yaml
 movies:
@@ -893,6 +672,12 @@ spring:
           max-active: 8
           max-idle: 8
           min-idle: 0
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${OAUTH2_ISSUER_URI:http://localhost:8180/realms/movies-api}
+          jwk-set-uri: ${OAUTH2_JWK_SET_URI:http://localhost:8180/realms/movies-api/protocol/openid-connect/certs}
 
 springdoc:
   api-docs:
@@ -903,18 +688,31 @@ springdoc:
     tags-sorter: alpha
     operations-sorter: alpha
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when-authorized
+
 logging:
   level:
     com.challenge.movies: INFO
 ```
 
-### application-local.yml (Development - Caffeine)
+### application-local.yml (Development - Caffeine + No Auth)
 
 ```yaml
 cache:
   ttl-minutes: 1              # Cache TTL (1 minute for demo)
   max-size: 1000              # Max cache entries
   key-prefix: "movies:page:"  # Configurable cache key prefix
+
+rate-limit:
+  capacity: 10                # Max requests allowed
+  duration-minutes: 1         # Time window in minutes
 
 spring:
   data:
@@ -958,81 +756,78 @@ cache:
 
 ## 🐳 Docker Setup
 
-### Redis with Docker Compose
-
-The project includes a Docker Compose configuration for running Redis locally with a management UI.
+The project includes a Docker Compose configuration with all infrastructure dependencies.
 
 **Location:** `src/main/resources/docker/docker-compose.yml`
 
 **Services included:**
-- **Redis 7.2 Alpine** - Lightweight Redis cache server
-- **Redis Commander** - Web UI for managing and inspecting Redis
+- **Redis 7.2 Alpine** (port 6379) - Distributed cache with persistence
+- **Redis Commander** (port 8081) - Web UI for Redis management
+- **Keycloak 23.0** (port 8180) - OAuth2 authorization server with auto-import realm
 
-**Start Redis:**
+### Start All Services
+
 ```bash
 cd src/main/resources/docker
 docker-compose up -d
 ```
 
-**Stop Redis:**
+### Start Individual Services
+
+```bash
+# Only Redis + Redis Commander
+docker-compose up -d redis redis-commander
+
+# Only Keycloak
+docker-compose up -d keycloak
+```
+
+### Stop Services
+
 ```bash
 docker-compose down
 ```
 
-**Clear cache:**
+### Access Services
+
+| Service | URL | Credentials |
+|---------|-----|-------------|
+| **Redis Commander** | http://localhost:8081 | No auth required |
+| **Keycloak Admin Console** | http://localhost:8180 | admin / admin |
+| **Redis CLI** | `docker exec -it movies-redis redis-cli` | - |
+
+### Useful Commands
+
+**Clear Redis cache:**
 ```bash
 docker exec movies-redis redis-cli FLUSHALL
 ```
 
-**Access Redis Commander:**
-- URL: http://localhost:8081
-- View cached keys, TTL, and values visually
-- Monitor cache performance in real-time
-
-**Check Redis status:**
+**Check services status:**
 ```bash
 docker-compose ps
 ```
 
 **View logs:**
 ```bash
+# All services
+docker-compose logs -f
+
+# Specific service
 docker-compose logs -f redis
+docker-compose logs -f keycloak
 ```
 
-For detailed Docker setup instructions, see `src/main/resources/docker/README.md`
-
----
-
-## 🧪 Testing
-
-**Test Suite:** 51 tests (43 unit tests + 8 integration tests)
-
-**Run tests:**
+**Stop and remove volumes (clean slate):**
 ```bash
-mvn test
+docker-compose down -v
 ```
 
-**Code Coverage (JaCoCo):**
-- Coverage report: `target/site/jacoco/index.html`
-- Thresholds: 80% line coverage, 75% branch coverage
-- Excluded: Generated MapStruct classes, DTOs, configuration classes
+### Keycloak Auto-Import
 
-**Integration Tests:**
-- Profile: `application-test.yml` (Redis disabled, OAuth2 disabled)
-- Uses `@MockitoBean` to mock external dependencies
-- Cache cleared between tests with `@AfterEach`
+Keycloak automatically imports the pre-configured realm on startup:
+- **Realm:** `movies-api`
+- **Client ID:** `movies-client`
+- **Client Secret:** `movies-secret-2024`
+- **Configuration:** `src/main/resources/docker/keycloak/realm-export.json`
 
----
-
-## 📦 Build & Deploy
-
-```bash
-# Build JAR
-mvn clean package
-
-# Skip tests
-mvn clean package -DskipTests
-
-# Build Docker image (if configured)
-mvn spring-boot:build-image
-```
