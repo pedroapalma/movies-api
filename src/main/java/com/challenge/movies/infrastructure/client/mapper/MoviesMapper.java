@@ -13,5 +13,9 @@ public interface MoviesMapper {
 
   Movie toMovie(MovieDto movieDto);
 
+  MovieDto toMovieDto(Movie movie);
+
   MoviesResponse toMoviesResponse(MoviesResponseDto moviesResponseDto);
+
+  MoviesResponseDto toMoviesResponseDto(MoviesResponse moviesResponse);
 }

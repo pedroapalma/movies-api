@@ -1005,13 +1005,22 @@ For detailed Docker setup instructions, see `src/main/resources/docker/README.md
 
 ## 🧪 Testing
 
-```bash
-# Run all tests
-mvn test
+**Test Suite:** 51 tests (43 unit tests + 8 integration tests)
 
-# Run tests with coverage
-mvn test jacoco:report
+**Run tests:**
+```bash
+mvn test
 ```
+
+**Code Coverage (JaCoCo):**
+- Coverage report: `target/site/jacoco/index.html`
+- Thresholds: 80% line coverage, 75% branch coverage
+- Excluded: Generated MapStruct classes, DTOs, configuration classes
+
+**Integration Tests:**
+- Profile: `application-test.yml` (Redis disabled, OAuth2 disabled)
+- Uses `@MockitoBean` to mock external dependencies
+- Cache cleared between tests with `@AfterEach`
 
 ---
 

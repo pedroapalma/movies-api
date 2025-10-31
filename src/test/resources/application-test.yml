@@ -1,0 +1,41 @@
+movies:
+  api:
+    url: http://localhost:${wiremock.server.port:8089}
+  async:
+    core-pool-size: 2
+    max-pool-size: 5
+    queue-capacity: 10
+    thread-name-prefix: TestAsync-
+
+cache:
+  ttl-minutes: 10
+  max-size: 100
+  key-prefix: "test:movies:page:"
+
+rate-limit:
+  capacity: 1000
+  duration-minutes: 1
+
+spring:
+  application:
+    name: movies-test
+  data:
+    redis:
+      enabled: false
+  main:
+    allow-bean-definition-overriding: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      enabled: false
+
+logging:
+  level:
+    com.challenge.movies: DEBUG
+    org.springframework.web: INFO
+    org.springframework.security: INFO
