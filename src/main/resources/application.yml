@@ -32,6 +32,12 @@ spring:
           max-active: 8
           max-idle: 8
           min-idle: 0
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${OAUTH2_ISSUER_URI:http://localhost:8180/realms/movies-api}
+          jwk-set-uri: ${OAUTH2_JWK_SET_URI:http://localhost:8180/realms/movies-api/protocol/openid-connect/certs}
 
 springdoc:
   api-docs:
@@ -41,6 +47,15 @@ springdoc:
     enabled: true
     tags-sorter: alpha
     operations-sorter: alpha
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when-authorized
 
 logging:
   level:

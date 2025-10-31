@@ -1,0 +1,43 @@
+{
+  "realm": "movies-api",
+  "enabled": true,
+  "sslRequired": "none",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": false,
+  "editUsernameAllowed": false,
+  "bruteForceProtected": true,
+  "clients": [
+    {
+      "clientId": "movies-client",
+      "name": "Movies API Client",
+      "description": "OAuth2 Client Credentials client for Movies API",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "movies-secret-2024",
+      "serviceAccountsEnabled": true,
+      "publicClient": false,
+      "protocol": "openid-connect",
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "fullScopeAllowed": true,
+      "attributes": {
+        "access.token.lifespan": "300"
+      }
+    }
+  ],
+  "roles": {
+    "client": {
+      "movies-client": [
+        {
+          "name": "api-user",
+          "description": "API User role",
+          "composite": false,
+          "clientRole": true
+        }
+      ]
+    }
+  }
+}

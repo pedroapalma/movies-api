@@ -30,8 +30,34 @@ services:
     networks:
       - movies-network
 
+  keycloak:
+    image: quay.io/keycloak/keycloak:23.0
+    container_name: movies-keycloak
+    environment:
+      - KEYCLOAK_ADMIN=admin
+      - KEYCLOAK_ADMIN_PASSWORD=admin
+      - KC_HTTP_PORT=8180
+    ports:
+      - "8180:8180"
+    command:
+      - start-dev
+      - --http-port=8180
+      - --import-realm
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8180/health/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - movies-network
+    volumes:
+      - keycloak-data:/opt/keycloak/data
+      - ./keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json:ro
+
 volumes:
   redis-data:
+    driver: local
+  keycloak-data:
     driver: local
 
 networks:

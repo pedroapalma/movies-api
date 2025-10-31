@@ -1,0 +1,340 @@
+{
+	"info": {
+		"_postman_id": "movies-api-collection",
+		"name": "Movies API",
+		"description": "Collection for Movies API with Local (no auth) and Production (OAuth2) profiles",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Local Profile (No Auth)",
+			"item": [
+				{
+					"name": "Get Directors (Threshold 4)",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8080/api/directors?threshold=4",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"api",
+								"directors"
+							],
+							"query": [
+								{
+									"key": "threshold",
+									"value": "4"
+								}
+							]
+						},
+						"description": "Get directors with more than 4 movies (Local - No authentication required)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Directors (Threshold 0)",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8080/api/directors?threshold=0",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"api",
+								"directors"
+							],
+							"query": [
+								{
+									"key": "threshold",
+									"value": "0"
+								}
+							]
+						},
+						"description": "Get all directors (Local - No authentication required)"
+					},
+					"response": []
+				},
+				{
+					"name": "Health Check",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8080/actuator/health",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"actuator",
+								"health"
+							]
+						},
+						"description": "Health check endpoint"
+					},
+					"response": []
+				},
+				{
+					"name": "Swagger UI",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8080/swagger-ui.html",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"swagger-ui.html"
+							]
+						},
+						"description": "API documentation"
+					},
+					"response": []
+				}
+			],
+			"description": "Local development profile - Authentication disabled. Run with: mvn spring-boot:run -Dspring-boot.run.profiles=local"
+		},
+		{
+			"name": "Production Profile (OAuth2)",
+			"item": [
+				{
+					"name": "1. Get Access Token",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.collectionVariables.set(\"access_token\", jsonData.access_token);",
+									"    console.log(\"✅ Access token saved\");",
+									"    console.log(\"Token expires in:\", jsonData.expires_in, \"seconds\");",
+									"} else {",
+									"    console.error(\"❌ Failed to get token:\", pm.response.text());",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/x-www-form-urlencoded"
+							}
+						],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "client_id",
+									"value": "movies-client",
+									"type": "text"
+								},
+								{
+									"key": "client_secret",
+									"value": "{{client_secret}}",
+									"description": "Get this from Keycloak -> Clients -> movies-client -> Credentials tab",
+									"type": "text"
+								},
+								{
+									"key": "grant_type",
+									"value": "client_credentials",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "http://localhost:8180/realms/movies-api/protocol/openid-connect/token",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8180",
+							"path": [
+								"realms",
+								"movies-api",
+								"protocol",
+								"openid-connect",
+								"token"
+							]
+						},
+						"description": "Obtain OAuth2 access token using Client Credentials flow. Token is automatically saved to collection variable."
+					},
+					"response": []
+				},
+				{
+					"name": "2. Get Directors (Threshold 4)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8080/api/directors?threshold=4",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"api",
+								"directors"
+							],
+							"query": [
+								{
+									"key": "threshold",
+									"value": "4"
+								}
+							]
+						},
+						"description": "Get directors with more than 4 movies (Production - OAuth2 required)"
+					},
+					"response": []
+				},
+				{
+					"name": "2. Get Directors (Threshold 0)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8080/api/directors?threshold=0",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"api",
+								"directors"
+							],
+							"query": [
+								{
+									"key": "threshold",
+									"value": "0"
+								}
+							]
+						},
+						"description": "Get all directors (Production - OAuth2 required)"
+					},
+					"response": []
+				},
+				{
+					"name": "Test Without Token (Should fail 401)",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8080/api/directors?threshold=4",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"api",
+								"directors"
+							],
+							"query": [
+								{
+									"key": "threshold",
+									"value": "4"
+								}
+							]
+						},
+						"description": "This request should fail with 401 Unauthorized in production profile"
+					},
+					"response": []
+				},
+				{
+					"name": "Health Check (Public)",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8080/actuator/health",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"actuator",
+								"health"
+							]
+						},
+						"description": "Public endpoint - No authentication required"
+					},
+					"response": []
+				}
+			],
+			"description": "Production profile - OAuth2 Client Credentials authentication enabled. Run with: mvn spring-boot:run\n\nSteps:\n1. Start Keycloak: docker-compose up keycloak\n2. Configure Keycloak (or use auto-import)\n3. Get client_secret from Keycloak\n4. Update {{client_secret}} variable below\n5. Run '1. Get Access Token' request\n6. Use other requests with the saved token"
+		}
+	],
+	"variable": [
+		{
+			"key": "access_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "client_secret",
+			"value": "movies-secret-2024",
+			"type": "string"
+		}
+	]
+}

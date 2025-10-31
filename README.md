@@ -2,6 +2,16 @@
 
 REST API to retrieve directors with movie count above a given threshold. This API fetches movies from an external source and filters directors based on the number of movies they have directed.
 
+## 🚀 Quick Links
+
+| Resource | Link | Description |
+|----------|------|-------------|
+| 📮 **Postman Collection** | [`Download`](postman/Movies%20API.postman_collection.json) | Pre-configured OAuth2 authentication (zero setup!) |
+| 📖 **API Documentation** | http://localhost:8080/swagger-ui.html | Interactive Swagger UI |
+| 🏥 **Health Check** | http://localhost:8080/actuator/health | API health status |
+| 🐳 **Docker Setup** | `src/main/resources/docker/` | Redis + Keycloak auto-import |
+| 🔑 **Keycloak Admin** | http://localhost:8180 | admin / admin |
+
 ## 📋 Table of Contents
 
 - [Overview](#overview)
@@ -13,7 +23,9 @@ REST API to retrieve directors with movie count above a given threshold. This AP
 - [Performance Optimizations](#performance-optimizations)
 - [Caching Strategy](#-caching-strategy)
 - [Rate Limiting](#-rate-limiting)
-- [Code Quality](#code-quality)
+- [Authentication (OAuth2)](#-authentication-oauth2)
+- [Postman Collection](#-postman-collection)
+- [Code Quality](#-code-quality)
 - [Configuration](#configuration)
 - [Docker Setup](#-docker-setup)
 - [Testing](#testing)
@@ -30,14 +42,16 @@ This application consumes an external Movies API and provides an endpoint to ret
 - ✅ Parallel HTTP requests for improved performance (80%+ faster)
 - ✅ Multi-profile caching with configurable TTL (Caffeine for local, Redis for production)
 - ✅ Rate limiting with Bucket4j (configurable requests per minute)
-- ✅ Docker Compose setup for Redis with management UI
+- ✅ OAuth2 Client Credentials authentication (disabled in local, enabled in prod)
+- ✅ **Ready-to-use Postman Collection** with pre-configured OAuth2 ([see below](#-postman-collection))
+- ✅ Docker Compose setup for Redis, Keycloak with auto-import realm
 - ✅ Detailed performance logging and cache monitoring
 - ✅ OpenAPI/Swagger documentation
 - ✅ Global exception handling with custom domain exceptions
 - ✅ Code quality tools (Spotless, PMD, SpotBugs, Checkstyle)
 - ✅ MapStruct for DTO mapping
 - ✅ Spring Cloud OpenFeign for HTTP client
-- ✅ Configurable cache key prefixes via application properties
+- ✅ Spring Boot Actuator for health checks
 
 ---
 
@@ -94,12 +108,15 @@ This project follows **Hexagonal Architecture** (Ports and Adapters pattern):
 - **Spring Boot 3.5.7**
 - **Spring Cloud 2025.0.0** (Northfields)
 - **Spring Cloud OpenFeign** - HTTP client
+- **Spring Security OAuth2 Resource Server** - JWT authentication
 - **MapStruct 1.5.5** - DTO mapping
 - **Lombok** - Boilerplate reduction
 - **SpringDoc OpenAPI 2.8.4** - API documentation
 - **Bucket4j 8.10.1** - Rate limiting with token bucket algorithm
 - **Caffeine** - In-memory cache (local profile)
 - **Redis** - Distributed cache (production profile)
+- **Keycloak 23.0** - Authorization server (auto-configured)
+- **Spring Boot Actuator** - Health checks and monitoring
 - **Maven** - Build tool
 
 **Code Quality Tools:**
@@ -120,7 +137,8 @@ src/main/java/com/challenge/movies/
 │   │   └── MoviesResponse.java
 │   ├── port/
 │   │   ├── MoviesPort.java
-│   │   └── CachePort.java
+│   │   ├── CachePort.java
+│   │   └── SecurityPort.java
 │   └── exception/
 │       ├── InvalidParameterException.java
 │       └── MoviesFetchException.java
@@ -133,9 +151,11 @@ src/main/java/com/challenge/movies/
 └── infrastructure/
     ├── adapter/
     │   ├── MoviesAdapter.java
-    │   └── cache/
-    │       ├── CaffeineCacheAdapter.java (@Profile("local"))
-    │       └── RedisCacheAdapter.java (@Profile("!local"))
+    │   ├── cache/
+    │   │   ├── CaffeineCacheAdapter.java (@Profile("local"))
+    │   │   └── RedisCacheAdapter.java (@Profile("!local"))
+    │   └── security/
+    │       └── SecurityContextAdapter.java
     ├── client/
     │   ├── MoviesClient.java
     │   ├── dto/
@@ -158,13 +178,14 @@ src/main/java/com/challenge/movies/
         ├── AsyncConfig.java
         ├── OpenApiConfig.java
         ├── RedisConfig.java (@Profile("!local"))
+        ├── SecurityConfig.java (@Profile-based)
         └── WebConfig.java
 
 src/main/resources/
-├── application.yml (Production - Redis)
-├── application-local.yml (Development - Caffeine)
+├── application.yml (Production - Redis + OAuth2)
+├── application-local.yml (Development - Caffeine + No Auth)
 └── docker/
-    ├── docker-compose.yml (Redis + Redis Commander)
+    ├── docker-compose.yml (Redis + Keycloak + Management UIs)
     └── README.md (Docker setup instructions)
 ```
 
@@ -564,6 +585,238 @@ rate-limit:
 **Scope:** Global (shared across all users)
 
 **Note:** For production environments with multiple instances, consider implementing distributed rate limiting using Redis.
+
+---
+
+## 🔐 Authentication (OAuth2)
+
+The API supports **OAuth2 Client Credentials** authentication with profile-based configuration:
+- **Local profile**: Authentication disabled (easier development)
+- **Production profile**: OAuth2 Resource Server with JWT validation
+
+### Profile Configuration
+
+**Local (development):**
+```bash
+# Run with local profile (no authentication)
+mvn spring-boot:run -Dspring-boot.run.profiles=local
+```
+All endpoints are publicly accessible without tokens.
+
+**Production:**
+```bash
+# Run with production profile (OAuth2 enabled)
+mvn spring-boot:run
+```
+Requires valid JWT token for `/api/**` endpoints.
+
+### OAuth2 Configuration
+
+**application.yml (production):**
+```yaml
+spring:
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${OAUTH2_ISSUER_URI}
+          jwk-set-uri: ${OAUTH2_JWK_SET_URI}
+```
+
+**Environment variables:**
+```bash
+export OAUTH2_ISSUER_URI=https://your-auth-server.com/realms/your-realm
+export OAUTH2_JWK_SET_URI=https://your-auth-server.com/realms/your-realm/protocol/openid-connect/certs
+```
+
+### Testing with Keycloak (Local)
+
+**1. Start Keycloak (auto-imports configuration):**
+```bash
+cd src/main/resources/docker
+docker-compose up keycloak
+```
+
+Keycloak starts on http://localhost:8180 and **automatically imports** the pre-configured realm:
+- **Realm:** `movies-api`
+- **Client ID:** `movies-client`
+- **Client Secret:** `movies-secret-2024` (for development only!)
+- **Grant Type:** Client Credentials
+- **Token Lifespan:** 5 minutes
+
+**2. Start API in production mode:**
+```bash
+# In a new terminal
+mvn spring-boot:run
+```
+
+**3. Get Access Token (using curl):**
+```bash
+curl -X POST http://localhost:8180/realms/movies-api/protocol/openid-connect/token \
+  -d "client_id=movies-client" \
+  -d "client_secret=movies-secret-2024" \
+  -d "grant_type=client_credentials"
+```
+
+**4. Make authenticated request:**
+```bash
+# Extract token from previous response and use it
+curl -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+  http://localhost:8080/api/directors?threshold=4
+```
+
+**Or use the [Postman Collection](#-postman-collection) for easier testing!**
+
+### Verify Keycloak Configuration (Optional)
+
+Access Keycloak Admin Console to verify the auto-imported configuration:
+- URL: http://localhost:8180
+- Username: `admin`
+- Password: `admin`
+- Navigate to: Realm `movies-api` → Clients → `movies-client` → Credentials tab
+
+### Public Endpoints
+
+These endpoints are always accessible without authentication:
+- `/actuator/health` - Health check
+- `/actuator/info` - Application info
+- `/swagger-ui/**` - API documentation
+- `/v3/api-docs/**` - OpenAPI specification
+
+### Security Adapter (Domain Access)
+
+If your domain needs authentication context, use the `SecurityPort`:
+
+```java
+@Service
+@RequiredArgsConstructor
+public class SomeService {
+
+  private final SecurityPort securityPort;
+
+  public void doSomething() {
+    if (securityPort.isAuthenticated()) {
+      String clientId = securityPort.getCurrentClientId().orElse("anonymous");
+      List<String> scopes = securityPort.getCurrentScopes();
+      // Use authentication info...
+    }
+  }
+}
+```
+
+**Implementation:**
+- Port: `src/main/java/com/challenge/movies/domain/port/SecurityPort.java`
+- Adapter: `src/main/java/com/challenge/movies/infrastructure/adapter/security/SecurityContextAdapter.java`
+
+---
+
+## 📮 Postman Collection
+
+Ready-to-use Postman collection with **zero manual configuration needed** for local testing!
+
+### 📥 Import Collection
+
+**File:** [`postman/Movies API.postman_collection.json`](postman/Movies%20API.postman_collection.json)
+
+**Import steps:**
+1. Open Postman
+2. Click **Import** button
+3. Drag and drop `Movies API.postman_collection.json` or select it
+4. Collection imports with all pre-configured settings ✅
+
+### 📂 Collection Structure
+
+The collection is organized into **two folders** for different environments:
+
+#### 📁 Local Profile (No Auth)
+For development with authentication disabled.
+
+**Included requests:**
+- Get Directors (Threshold 4)
+- Get Directors (Threshold 0)
+- Health Check
+- Swagger UI
+
+**Usage:**
+```bash
+mvn spring-boot:run -Dspring-boot.run.profiles=local
+```
+Then use any request - **no token needed!**
+
+#### 📁 Production Profile (OAuth2)
+For testing with OAuth2 authentication enabled.
+
+**Included requests:**
+1. **Get Access Token** ← Run this first!
+2. **Get Directors (Threshold 4)** - Authenticated
+3. **Get Directors (Threshold 0)** - Authenticated
+4. **Test Without Token** - Should fail with 401
+5. **Health Check (Public)** - Always accessible
+
+### 🚀 Quick Start Guide
+
+#### Option 1: Local Profile (No Authentication)
+
+```bash
+# 1. Start API
+mvn spring-boot:run -Dspring-boot.run.profiles=local
+
+# 2. In Postman: Use any request from "Local Profile" folder
+```
+
+No token, no OAuth2, no Keycloak needed! Perfect for quick testing.
+
+#### Option 2: Production Profile (OAuth2)
+
+```bash
+# 1. Start Keycloak (auto-imports realm with client_secret)
+cd src/main/resources/docker
+docker-compose up keycloak
+
+# 2. Start API in production mode (new terminal)
+mvn spring-boot:run
+
+# 3. In Postman: Execute "Production Profile > 1. Get Access Token"
+#    ✅ Token is automatically saved to {{access_token}} variable
+
+# 4. Use any other request in the folder
+#    Token is automatically included in requests!
+```
+
+### 🔑 Pre-configured OAuth2 Client
+
+The Postman collection already includes the OAuth2 credentials:
+
+| Variable | Value | Description |
+|----------|-------|-------------|
+| `client_id` | `movies-client` | OAuth2 client identifier |
+| `client_secret` | `movies-secret-2024` | Pre-configured secret (dev only!) |
+| `access_token` | (auto-saved) | Token saved after "Get Access Token" |
+
+**No manual configuration needed!** The Keycloak realm is auto-imported with these credentials.
+
+### ✨ Smart Features
+
+**Auto-save Token:**
+When you execute "1. Get Access Token", a script automatically:
+- ✅ Extracts `access_token` from response
+- ✅ Saves it to collection variable `{{access_token}}`
+- ✅ Makes it available for all subsequent requests
+- ✅ Logs confirmation in Postman Console
+
+**Pre-configured URLs:**
+- API: `http://localhost:8080`
+- Keycloak: `http://localhost:8180`
+- Realm: `movies-api`
+
+### 🔧 Customization
+
+To use different OAuth2 credentials:
+
+1. Right-click on the collection → **Edit**
+2. Go to **Variables** tab
+3. Update `client_secret` value
+4. Save changes
 
 ---
 
